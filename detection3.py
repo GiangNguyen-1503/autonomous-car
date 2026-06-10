@@ -2,9 +2,13 @@ import cv2
 import threading
 import time
 
+########
+#HOG + BACKGROUND
+
+
 # Background subtractors
-bg_front = cv2.createBackgroundSubtractorMOG2(history=200, varThreshold=80, detectShadows=False)
-bg_right = cv2.createBackgroundSubtractorMOG2(history=200, varThreshold=80, detectShadows=False)
+bg_front = cv2.createBackgroundSubtractorMOG2(history=100, varThreshold=40, detectShadows=False)
+bg_right = cv2.createBackgroundSubtractorMOG2(history=100, varThreshold=40, detectShadows=False)
 
 # HOG person detector
 hog = cv2.HOGDescriptor()
@@ -28,7 +32,7 @@ def read_cameras():
 			state["right"] = r
 
 def get_foreground(frame, bg_subtractor, min_area=1500):
-	"""Returns (has_object, fg_mask)"""
+    """Returns (has_object, fg_mask)"""
 	if frame is None:
 		return False, None
 	kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
@@ -42,7 +46,7 @@ def get_foreground(frame, bg_subtractor, min_area=1500):
 	return False, fg
 
 def detect_person(frame):
-	"""Only called when foreground detected — saves CPU"""
+    """Only called when foreground detected — saves CPU"""
 	if frame is None:
 		return False
 	resized = cv2.resize(frame, (320, 240))
@@ -50,14 +54,16 @@ def detect_person(frame):
 	return len(boxes) > 0
 
 def detect_obstacle(frame, bg_subtractor, min_area=1500):
-	"""Returns (obstacle_detected, is_person)
-    	Step 1: Background subtraction (fast)
-    	Step 2: HOG only if foreground found (slow but rare)
-    	"""
+    """
+    Returns (obstacle_detected, is_person)
+    Step 1: Background subtraction (fast)
+    Step 2: HOG only if foreground found (slow but rare)
+    """
 	has_object, _ = get_foreground(frame, bg_subtractor, min_area)
 	if not has_object:
 		return False, False
-    	# Only run HOG when something is detected
+    
+	# Only run HOG when something is detected
 	is_person = detect_person(frame)
 	return True, is_person
 
@@ -78,13 +84,11 @@ if __name__ == "__main__":
 			r = state["right"]
 			blocked, is_person = detect_obstacle(f, bg_front)
 			right_clear = is_right_clear(r)
-	
-		if blocked:
-			label = "PERSON" if is_person else "OBJECT"
-			print(f"Front: BLOCKED ({label}) | Right: {'clear' if right_clear else 'BLOCKED'}")
-		else:
-			print(f"Front: clear | Right: {'clear' if right_clear else 'BLOCKED'}")
-
-		time.sleep(0.15)
+			if blocked:
+				label = "PERSON" if is_person else "OBJECT"
+				print(f"Front: BLOCKED ({label}) | Right: {'clear' if right_clear else 'BLOCKED'}")
+			else:
+				print(f"Front: clear | Right: {'clear' if right_clear else 'BLOCKED'}")
+			time.sleep(0.15)
 	except KeyboardInterrupt:
 		print("Stopped.")
