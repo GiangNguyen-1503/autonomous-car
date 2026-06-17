@@ -71,9 +71,7 @@ STREAM_ENABLE = True
 STREAM_PORT   = 8000
 
 
-# ---------------------------------------------------------------------
 #  MJPEG STREAM
-# ---------------------------------------------------------------------
 class FrameBuffer:
     def __init__(self):
         self._jpeg = None
@@ -112,9 +110,7 @@ def start_stream_server(port):
     return server
 
 
-# ---------------------------------------------------------------------
 #  MOTOR CONTROLLER
-# ---------------------------------------------------------------------
 class MotorController:
     def __init__(self, use_arduino, port, baud):
         self.ser = None
@@ -146,9 +142,7 @@ class MotorController:
             self.ser.close()
 
 
-# ---------------------------------------------------------------------
 #  CANNY + COLUMN SCAN
-# ---------------------------------------------------------------------
 def scan_edges(frame_bgr):
     """
     Quet tu day len, tim edge dau tien (chan vat can).
@@ -170,12 +164,12 @@ def scan_edges(frame_bgr):
         found = False
         for y in range(roi_h - SAFE_BOTTOM, 0, -1):
             if edges[y, x] == 255:
-                y_local = roi_h - 1 - y    # khoang trong tu day
+                y_local = roi_h - 1 - y #khoang trong tu day
                 edge_array.append((x, y_local))
                 found = True
                 break
         if not found:
-            edge_array.append((x, roi_h - 1))   # khong edge -> thoang het tam
+            edge_array.append((x, roi_h - 1))   #khong edge -> thoang het tam
 
     n = len(edge_array)
     if n < N_REGIONS:
@@ -201,9 +195,7 @@ def scan_edges(frame_bgr):
     }
 
 
-# ---------------------------------------------------------------------
 #  STUCK TRACKER
-# ---------------------------------------------------------------------
 class StuckTracker:
     """
     Phat hien ket:
@@ -246,9 +238,7 @@ class StuckTracker:
                 amp(rs) <= STUCK_OSC_BAND)
 
 
-# ---------------------------------------------------------------------
 #  FSM (CRUISE / AVOIDING / STUCK)
-# ---------------------------------------------------------------------
 class FreeSpaceFSM:
     CRUISE   = "CRUISE"
     AVOIDING = "AVOIDING"
@@ -263,7 +253,7 @@ class FreeSpaceFSM:
         self.warm_up         = 0
         self.stuck_phase     = None
         self.stuck_t0        = None
-        self.stuck_detected_time = None  # thoi gian phat hien stuck (de hien countdown)
+        self.stuck_detected_time = None  #thoi gian phat hien stuck (de hien countdown)
 
     def _blocked_front(self, info, roi_h):
         return info['c_fwd'] < BLOCK_RATIO * roi_h
@@ -278,7 +268,7 @@ class FreeSpaceFSM:
         self.state = self.STUCK
         self.stuck_phase = None
         self.stuck_t0 = None
-        self.stuck_detected_time = time.time()  # ghi lai thoi diem phat hien
+        self.stuck_detected_time = time.time()  #ghi lai thoi diem phat hien
         self.danger_streak = 0
         self.clear_streak = 0
         return ('x', "ENTER STUCK (%s): back 4s + turn until clear" % tag, self.state)
@@ -312,7 +302,7 @@ class FreeSpaceFSM:
             # chua thoang -> tiep tuc re trai
             return ('a', "STUCK: turning left (F=%.0f)" % c_f, self.state)
 
-        # ===== CRUISE =====
+        #cRUISE
         if self.state == self.CRUISE:
             if stuck_flag:
                 return self._enter_stuck("all-zero/oscillate")
@@ -342,7 +332,7 @@ class FreeSpaceFSM:
                 return ('d', "CRUISE: lean right (L=%.0f F=%.0f R=%.0f)" % (c_l, c_f, c_r), self.state)
             return ('w', "CRUISE: forward (L=%.0f F=%.0f R=%.0f)" % (c_l, c_f, c_r), self.state)
 
-        # ===== AVOIDING =====
+        #AVOIDING
         if self.state == self.AVOIDING:
             if stuck_flag:
                 return self._enter_stuck("stuck-in-avoiding")
@@ -368,9 +358,7 @@ class FreeSpaceFSM:
         return ('w', "DEFAULT", self.state)
 
 
-# ---------------------------------------------------------------------
 #  BUILD VIEW
-# ---------------------------------------------------------------------
 def build_view(frame_bgr, info, cmd, reason, state, fps, stuck_flag, stuck_detected_time=None):
     h, w = frame_bgr.shape[:2]
     original = frame_bgr.copy()
@@ -458,9 +446,7 @@ def _label(img, text):
     cv2.putText(img, text, (8, 16), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
 
 
-# ---------------------------------------------------------------------
 #  MAIN LOOP
-# ---------------------------------------------------------------------
 def main():
     cap = cv2.VideoCapture(CAM_INDEX, cv2.CAP_V4L2)
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, FRAME_W)
